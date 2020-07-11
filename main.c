@@ -648,13 +648,9 @@ static void nrf_timer_handler(void *p_context) {
 	cdc_printf("Test\r\n");
 }
 
-int main(void) {
-	nrf_gpio_cfg_output(LED_PIN);
+void usb_init(){
 
-#ifdef NRF52840_XXAA
-	nrf_drv_clock_init();
-
-	static const app_usbd_config_t usbd_config = {
+    static const app_usbd_config_t usbd_config = {
 			.ev_state_proc = usbd_user_ev_handler
 	};
 
@@ -662,7 +658,22 @@ int main(void) {
 	app_usbd_init(&usbd_config);
 	app_usbd_class_inst_t const * class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&m_app_cdc_acm);
 	app_usbd_class_append(class_cdc_acm);
-#endif
+
+}
+
+void receiver_init(){
+
+    nrf_gpio_cfg_output(LED_PIN);
+
+}
+
+int main(void) {
+	
+
+	nrf_drv_clock_init();
+
+    receiver_init();
+	usb_init();
 
 	uart_init();
 	app_timer_init();
@@ -688,16 +699,13 @@ int main(void) {
 	esb_timeslot_init(esb_timeslot_data_handler);
 	esb_timeslot_sd_start();
 
-#ifdef NRF52840_XXAA
 	app_usbd_power_events_enable();
-#endif
 
 	start_advertising();
 
 	for (;;) {
-#ifdef NRF52840_XXAA
+
 		while (app_usbd_event_queue_process()){}
-#endif
 
 		if (m_uart_error) {
 			app_uart_close();

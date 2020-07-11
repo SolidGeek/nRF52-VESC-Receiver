@@ -8,12 +8,12 @@ VERBOSE=0
 CFLAGS += $(build_args)
 
 # Path to the NRF52 SDK. Change if needed.
-SDK_ROOT := D:/nRF5/nRF5_SDK_15.3.0_59ac345
+SDK_ROOT := D:/nRF5/nRF5_SDK_16.0.0_98a08e2
 
 TARGET_PATH := $(OUTPUT_DIRECTORY)/$(TARGETS).hex
 
 $(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := ld_sd_52840.ld
-SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex
+SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex
 
 # Source files
 SRC_FILES += \
@@ -322,7 +322,7 @@ flash: default
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
-	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex --sectorerase
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
 erase:
