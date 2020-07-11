@@ -37,17 +37,11 @@
 #include "app_uart.h"
 #include "app_util_platform.h"
 #include "nrf_pwr_mgmt.h"
-#include "bsp_btn_ble.h"
 #include "nrf_delay.h"
 
-#if defined (UART_PRESENT)
 #include "nrf_uart.h"
-#endif
-#if defined (UARTE_PRESENT)
 #include "nrf_uarte.h"
-#endif
 
-#ifdef NRF52840_XXAA
 #include "app_usbd_core.h"
 #include "app_usbd.h"
 #include "app_usbd_string_desc.h"
@@ -56,7 +50,7 @@
 #include "nrf_drv_power.h"
 #include "nrf_drv_usbd.h"
 #include "nrf_drv_clock.h"
-#endif
+
 
 #include "packet.h"
 #include "buffer.h"
@@ -64,31 +58,10 @@
 #include "esb_timeslot.h"
 #include "crc.h"
 
-#ifndef MODULE_BUILTIN
-#define MODULE_BUILTIN					1
-#endif
-
-#ifndef MODULE_RD2
-#define MODULE_RD2						0
-#endif
 
 #define APP_BLE_CONN_CFG_TAG            1                                           /**< A tag identifying the SoftDevice BLE configuration. */
 
-#ifdef NRF52840_XXAA
-#if MODULE_BUILTIN
-#define DEVICE_NAME                     "VESC 52840 BUILTIN"
-#elif defined(MODULE_RD2)
-#define DEVICE_NAME                     "VESC RAD2"
-#else
-#define DEVICE_NAME                     "VESC 52840 UART"
-#endif
-#else
-#if MODULE_BUILTIN
-#define DEVICE_NAME                     "VESC 52832 BUILTIN"
-#else
-#define DEVICE_NAME                     "VESC 52832 UART"
-#endif
-#endif
+#define DEVICE_NAME                     "Firefly nRF52 UART"
 
 #define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
 
@@ -108,49 +81,18 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-#ifdef NRF52840_XXAA
+// #ifdef NRF52840_XXAA
 #define UART_TX_BUF_SIZE                16384
 #define UART_RX_BUF_SIZE                16384
-#else
-#define UART_TX_BUF_SIZE                2048
-#define UART_RX_BUF_SIZE                8192
-#endif
 
 #define PACKET_VESC						0
 #define PACKET_BLE						1
 
-#ifdef NRF52840_XXAA
-#if MODULE_BUILTIN
-#define UART_RX							26
-#define UART_TX							25
-#define UART_TX_DISABLED				28
-#define LED_PIN							27
-#elif defined(MODULE_RD2)
-#define UART_RX							11
-#define UART_TX							12
-#define UART_TX_DISABLED				18
-#define LED_PIN							15
-#else
-#define UART_RX							11
-#define UART_TX							8
-#define UART_TX_DISABLED				25
-#define LED_PIN							7
-#endif
-#else
-#if MODULE_BUILTIN
-#define UART_RX							6
-#define UART_TX							7
-#define UART_TX_DISABLED				25
-#define EN_DEFAULT						1
-#define LED_PIN							8
-#else
-#define UART_RX							7
-#define UART_TX							6
-#define UART_TX_DISABLED				25
-#define EN_DEFAULT						1
-#define LED_PIN							8
-#endif
-#endif
+// #ifdef NRF52840_XXAA
+#define UART_RX							NRF_GPIO_PIN_MAP(0,26)
+#define UART_TX							NRF_GPIO_PIN_MAP(0,25)
+#define UART_TX_DISABLED				NRF_GPIO_PIN_MAP(0,28)
+#define LED_PIN							NRF_GPIO_PIN_MAP(1,10)
 
 // Private variables
 APP_TIMER_DEF(m_packet_timer);
@@ -190,7 +132,7 @@ app_uart_comm_params_t m_uart_comm_params =
 void ble_printf(const char* format, ...);
 static void set_enabled(bool en);
 
-#ifdef NRF52840_XXAA
+// #ifdef NRF52840_XXAA
 static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 		app_usbd_cdc_acm_user_event_t event);
 
@@ -268,7 +210,7 @@ static void usbd_user_ev_handler(app_usbd_event_type_t event) {
 		break;
 	}
 }
-#endif
+
 
 /**@brief Function for assert macro callback.
  *
