@@ -13,7 +13,7 @@ PROJECT_ROOT := C:/Users/Emil/Documents/GitHub/nRF52-VESC-Receiver
 
 TARGET_PATH := $(OUTPUT_DIRECTORY)/$(TARGETS).hex
 
-$(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := ld_sd_52840.ld
+$(OUTPUT_DIRECTORY)/$(TARGETS).out: LINKER_SCRIPT := config/ld_sd_52840.ld
 SD_PATH := $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex
 
 # Source files
@@ -233,6 +233,7 @@ INC_FOLDERS += \
 
 # Project includes
 INC_FOLDERS += \
+  config \
   sdk_mod \
   src \
   . \
@@ -365,7 +366,7 @@ flash_softdevice:
 erase:
 	nrfjprog -f nrf52 --eraseall
 
-SDK_CONFIG_FILE := ../config/sdk_config.h
+SDK_CONFIG_FILE := config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
