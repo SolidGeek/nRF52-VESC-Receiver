@@ -1,4 +1,4 @@
-PROJECT_NAME     := vesc_ble_uart
+PROJECT_NAME     := firefly_nrf52_receiver
 OUTPUT_DIRECTORY := _build
 TARGETS          := nrf52840_xxaa
 
@@ -9,6 +9,7 @@ CFLAGS += $(build_args)
 
 # Path to the NRF52 SDK. Change if needed.
 SDK_ROOT := D:/nRF5/nRF5_SDK_16.0.0_98a08e2
+PROJECT_ROOT := C:/Users/Emil/Documents/GitHub/nRF52-VESC-Receiver
 
 TARGET_PATH := $(OUTPUT_DIRECTORY)/$(TARGETS).hex
 
@@ -24,7 +25,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm/app_usbd_cdc_acm.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd_core.c \
   $(SDK_ROOT)/components/libraries/usbd/app_usbd_serial_num.c \
-  $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd_string_desc.c \
 
 SRC_FILES += \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
@@ -68,9 +69,6 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
-  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
   $(SDK_ROOT)/components/ble/common/ble_advdata.c \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
   $(SDK_ROOT)/components/ble/common/ble_conn_params.c \
@@ -87,12 +85,16 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_twi.c \
   $(SDK_ROOT)/components/ble/nrf_ble_qwr/nrf_ble_qwr.c \
-  main.c \
-  buffer.c \
-  crc.c \
-  packet.c \
+  $(SDK_ROOT)/components/libraries/usbd/class/nrf_dfu_trigger/app_usbd_nrf_dfu_trigger.c \
+  $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_trigger_usb.c \
+  src/buffer.c \
+  src/crc.c \
+  src/packet.c \
+  src/nrf_usb.c \
+  src/esb_timeslot.c \
   sdk_mod/nrf_esb.c \
-  esb_timeslot.c
+  main.c \
+  
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -208,7 +210,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/components/libraries/usbd \
   $(SDK_ROOT)/components/nfc/ndef/connection_handover/ep_oob_rec \
-  $(SDK_ROOT)/external/segger_rtt \
   $(SDK_ROOT)/components/libraries/atomic_fifo \
   $(SDK_ROOT)/components/ble/ble_services/ble_lbs_c \
   $(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_lib \
@@ -223,8 +224,18 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/ac_rec_parser \
   $(SDK_ROOT)/components/libraries/stack_guard \
   $(SDK_ROOT)/components/libraries/log/src \
-  . \
+
+# DFU Trigger 
+INC_FOLDERS += \
+  $(SDK_ROOT)/components/libraries/bootloader/dfu \
+  $(SDK_ROOT)/components/libraries/usbd/class/nrf_dfu_trigger \
+  $(SDK_ROOT)/components/libraries/block_dev \
+
+# Project includes
+INC_FOLDERS += \
   sdk_mod \
+  src \
+  . \
 
 # Libraries common to all targets
 LIB_FILES += \
@@ -236,7 +247,7 @@ OPT = -O3 -g3
 
 # C flags common to all targets
 CFLAGS += $(OPT)
-CFLAGS += -DBOARD_PCA10056
+CFLAGS += -DCUSTOM_BOARD_INC=firefly_receiver_board
 CFLAGS += -DS140
 CFLAGS += -DNRF52840_XXAA
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
@@ -257,7 +268,7 @@ CFLAGS += -std=gnu99 -D_GNU_SOURCE
 CXXFLAGS += $(OPT)
 
 # Assembler flags common to all targets
-ASMFLAGS += -DBOARD_PCA10056
+ASMFLAGS += -DCUSTOM_BOARD_INC=firefly_receiver_board
 ASMFLAGS += -DS140
 ASMFLAGS += -DNRF52840_XXAA
 ASMFLAGS += -g3
@@ -319,7 +330,33 @@ flash: default
 	nrfjprog -f nrf52 --program $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
-# Flash softdevice
+# --- Flash everything ---
+# 1. Generate new Application Settings (tricking DFU to start application first upload)
+# 2. Upload the settings
+# 3. Upload the bootloader
+# 4. Upload the softdevice
+# 5. Upload the Application
+flash_all: default
+	nrfjprog -f nrf52 --eraseall
+	nrfutil settings generate --family NRF52 --application $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex --application-version 0x00 --bootloader-version 0 --bl-settings-version 2 $(OUTPUT_DIRECTORY)/bootloader_setting.hex
+	nrfjprog --program $(OUTPUT_DIRECTORY)/bootloader_setting.hex --family NRF52 --sectorerase
+	nrfjprog --program bootloader/boot_nrf52840_xxaa.hex --family NRF52 --reset --sectorerase 
+	nrfjprog --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex --family NRF52 --reset --sectorerase 
+	nrfjprog --program $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex --family NRF52 --reset --sectorerase 
+
+# Flash the program
+flash_bootloader:
+	@echo Flashing: bootloader/boot_nrf52840_xxaa.hex
+	nrfjprog -f nrf52 --program bootloader/boot_nrf52840_xxaa.hex --sectorerase
+	nrfjprog -f nrf52 --reset
+
+# Flash master boot record (MBR)
+flash_mbr:
+	@echo Flashing: mbr_nrf52_2.4.1_mbr.hex
+	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/mbr/hex/mbr_nrf52_2.4.1_mbr.hex --sectorerase
+	nrfjprog -f nrf52 --reset
+
+# Flash softdevice 
 flash_softdevice:
 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex --sectorerase

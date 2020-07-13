@@ -51,7 +51,7 @@
 #include "nrf_drv_usbd.h"
 #include "nrf_drv_clock.h"
 
-
+#include "nrf_usb.h"
 #include "packet.h"
 #include "buffer.h"
 #include "datatypes.h"
@@ -133,6 +133,7 @@ void ble_printf(const char* format, ...);
 static void set_enabled(bool en);
 
 // #ifdef NRF52840_XXAA
+/* 
 static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 		app_usbd_cdc_acm_user_event_t event);
 
@@ -141,11 +142,12 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
 
 #define CDC_ACM_DATA_INTERFACE  1
 #define CDC_ACM_DATA_EPIN       NRF_DRV_USBD_EPIN1
-#define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1
+#define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1 */
 
 /**
  * @brief CDC_ACM class instance
  * */
+/* 
 APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
 		cdc_acm_user_ev_handler,
 		CDC_ACM_COMM_INTERFACE,
@@ -155,7 +157,10 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
 		CDC_ACM_DATA_EPOUT,
 		APP_USBD_CDC_COMM_PROTOCOL_NONE
 );
+*/
 
+
+/* 
 static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst, app_usbd_cdc_acm_user_event_t event) {
 	switch (event) {
 	case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN: {
@@ -182,8 +187,9 @@ static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst, app_us
 	default:
 		break;
 	}
-}
+}*/
 
+/* 
 static void usbd_user_ev_handler(app_usbd_event_type_t event) {
 	switch (event) {
 	case APP_USBD_EVT_DRV_SUSPEND:
@@ -209,7 +215,7 @@ static void usbd_user_ev_handler(app_usbd_event_type_t event) {
 	default:
 		break;
 	}
-}
+}*/
 
 
 /**@brief Function for assert macro callback.
@@ -593,6 +599,7 @@ void ble_printf(const char* format, ...) {
 	}
 }
 
+/* 
 void cdc_printf(const char* format, ...) {
 #ifdef NRF52840_XXAA
 	va_list arg;
@@ -610,7 +617,7 @@ void cdc_printf(const char* format, ...) {
 #else
 	(void)format;
 #endif
-}
+}*/
 
 static void esb_timeslot_data_handler(void *p_data, uint16_t length) {
 	if (m_other_comm_disable_time == 0) {
@@ -645,10 +652,10 @@ static void nrf_timer_handler(void *p_context) {
 		CRITICAL_REGION_EXIT();
 	}
 
-	cdc_printf("Test\r\n");
+	// cdc_printf("Test\r\n");
 }
 
-void usb_init(){
+/* void usb_init(){
 
     static const app_usbd_config_t usbd_config = {
 			.ev_state_proc = usbd_user_ev_handler
@@ -659,7 +666,7 @@ void usb_init(){
 	app_usbd_class_inst_t const * class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&m_app_cdc_acm);
 	app_usbd_class_append(class_cdc_acm);
 
-}
+}*/
 
 void receiver_init(){
 
@@ -699,13 +706,13 @@ int main(void) {
 	esb_timeslot_init(esb_timeslot_data_handler);
 	esb_timeslot_sd_start();
 
-	app_usbd_power_events_enable();
+	// app_usbd_power_events_enable();
 
 	start_advertising();
 
 	for (;;) {
 
-		while (app_usbd_event_queue_process()){}
+		// while (app_usbd_event_queue_process()){}
 
 		if (m_uart_error) {
 			app_uart_close();

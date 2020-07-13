@@ -59,6 +59,59 @@
 // </h> 
 //==========================================================
 
+
+// <h> Application 
+
+// <s> APP_NAME - Application name
+#ifndef APP_NAME
+#define APP_NAME "Firefly nRF52 Receiver"
+#endif
+
+// <o> APP_ID - Application ID 
+#ifndef APP_ID
+#define APP_ID 0
+#endif
+
+// <h> APP_VERSION - Application version (semantic versioning)
+
+//==========================================================
+// <o> APP_VERSION_MAJOR - Major version  <0-1000> 
+#ifndef APP_VERSION_MAJOR
+#define APP_VERSION_MAJOR 0
+#endif
+
+// <o> APP_VERSION_MINOR - Minor version  <0-1000> 
+#ifndef APP_VERSION_MINOR
+#define APP_VERSION_MINOR 1
+#endif
+
+// <o> APP_VERSION_PATCH - Patch version  <0-1000> 
+#ifndef APP_VERSION_PATCH
+#define APP_VERSION_PATCH 0
+#endif
+
+// <s> APP_VERSION_PRERELEASE - Prerelease, eg. "-1.alpha"
+
+// <i> If not empty, this string should include the leading hyphen (-).
+// <i> This string might be normalized at run-time to not contain characters
+// <i> illegal in Semantic Versioning.
+#ifndef APP_VERSION_PRERELEASE
+#define APP_VERSION_PRERELEASE ""
+#endif
+
+// <s> APP_VERSION_METADATA - Metadata, e.g. "+some-string.01-01-2018-23-59-59"
+
+// <i> If not empty, this string should include the leading plus (+).
+// <i> This string might be normalized at run-time to not contain characters
+// <i> illegal in Semantic Versioning.
+#ifndef APP_VERSION_METADATA
+#define APP_VERSION_METADATA "+" __DATE__ " " __TIME__
+#endif
+
+// </h>
+// </h>
+
+
 // <h> nRF_BLE 
 
 //==========================================================
@@ -5996,6 +6049,31 @@
 // <h> nRF_Libraries 
 
 //==========================================================
+
+
+// <h> nrf_usb_dfu_trigger - USB DFU Trigger library
+
+// <q> APP_USBD_NRF_DFU_TRIGGER_ENABLED
+#ifndef APP_USBD_NRF_DFU_TRIGGER_ENABLED
+#define APP_USBD_NRF_DFU_TRIGGER_ENABLED 1
+#endif
+
+// <q> NRF_USB_DFU_TRIGGER_USB_SHARED  - Flag indicating whether USB is used for other purposes in the application.
+#ifndef NRF_DFU_TRIGGER_USB_USB_SHARED
+#define NRF_DFU_TRIGGER_USB_USB_SHARED 1
+#endif
+
+// <o> NRF_USB_DFU_TRIGGER_INTERFACE_NUM - The USB interface to use for the DFU Trigger library.  <0-255>
+
+// <i> According to the USB Specification, interface numbers cannot have
+// <i> gaps. Tailor this value to adhere to this limitation.
+#ifndef NRF_DFU_TRIGGER_USB_INTERFACE_NUM
+#define NRF_DFU_TRIGGER_USB_INTERFACE_NUM 0
+#endif
+
+// </h>
+
+
 // <q> APP_FIFO_ENABLED  - app_fifo - Software FIFO implementation
  
 
@@ -6222,7 +6300,7 @@
 // <i> Selected Product ID
 
 #ifndef APP_USBD_PID
-#define APP_USBD_PID 0x521A
+#define APP_USBD_PID 0xC00A
 #endif
 
 // <o> APP_USBD_DEVICE_VER_MAJOR - Device version, major part.  <0-99> 
@@ -6281,7 +6359,7 @@
 // <i> Functions that modify USBD state are functions for sleep, wakeup, start, stop, enable, and disable.
 //==========================================================
 #ifndef APP_USBD_CONFIG_EVENT_QUEUE_ENABLE
-#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 1
+#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 0 // 0 = makes the USB event handling interrupt driven
 #endif
 // <o> APP_USBD_CONFIG_EVENT_QUEUE_SIZE - The size of the event queue.  <16-64> 
 
