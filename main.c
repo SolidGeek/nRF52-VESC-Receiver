@@ -34,13 +34,12 @@
 #include "nrf_ble_qwr.h"
 #include "app_timer.h"
 #include "ble_nus.h"
-#include "app_uart.h"
+
 #include "app_util_platform.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_delay.h"
 
-#include "nrf_uart.h"
-#include "nrf_uarte.h"
+
 
 #include "app_usbd_core.h"
 #include "app_usbd.h"
@@ -51,7 +50,9 @@
 #include "nrf_drv_usbd.h"
 #include "nrf_drv_clock.h"
 
-#include "nrf_usb.h"
+#include "def.h"
+#include "usb.h"
+#include "uart.h"
 #include "packet.h"
 #include "buffer.h"
 #include "datatypes.h"
@@ -81,17 +82,9 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-// #ifdef NRF52840_XXAA
-#define UART_TX_BUF_SIZE                16384
-#define UART_RX_BUF_SIZE                16384
 
-#define PACKET_VESC						0
-#define PACKET_BLE						1
 
-// #ifdef NRF52840_XXAA
-#define UART_RX							NRF_GPIO_PIN_MAP(0,26)
-#define UART_TX							NRF_GPIO_PIN_MAP(0,25)
-#define UART_TX_DISABLED				NRF_GPIO_PIN_MAP(0,28)
+
 #define LED_PIN							NRF_GPIO_PIN_MAP(1,10)
 
 // Private variables
@@ -109,11 +102,12 @@ static ble_uuid_t m_adv_uuids[]          =                                      
 {
 		{BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
 };
-static volatile bool					m_is_enabled = true;
-static volatile bool					m_uart_error = false;
-static volatile int						m_other_comm_disable_time = 0;
 
-app_uart_comm_params_t m_uart_comm_params =
+/* static volatile bool	m_is_enabled = true;
+static volatile bool	m_uart_error = false; */
+static volatile int		m_other_comm_disable_time = 0;
+
+/* app_uart_comm_params_t m_uart_comm_params =
 {
 		.rx_pin_no    = UART_RX,
 		.tx_pin_no    = UART_TX,
@@ -121,102 +115,11 @@ app_uart_comm_params_t m_uart_comm_params =
 		.cts_pin_no   = 0,
 		.flow_control = APP_UART_FLOW_CONTROL_DISABLED,
 		.use_parity   = false,
-#if defined (UART_PRESENT)
 		.baud_rate    = NRF_UART_BAUDRATE_115200
-#else
-		.baud_rate    = NRF_UARTE_BAUDRATE_115200
-#endif
-};
+}; */
 
 // Functions
 void ble_printf(const char* format, ...);
-static void set_enabled(bool en);
-
-// #ifdef NRF52840_XXAA
-/* 
-static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst,
-		app_usbd_cdc_acm_user_event_t event);
-
-#define CDC_ACM_COMM_INTERFACE  0
-#define CDC_ACM_COMM_EPIN       NRF_DRV_USBD_EPIN2
-
-#define CDC_ACM_DATA_INTERFACE  1
-#define CDC_ACM_DATA_EPIN       NRF_DRV_USBD_EPIN1
-#define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1 */
-
-/**
- * @brief CDC_ACM class instance
- * */
-/* 
-APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
-		cdc_acm_user_ev_handler,
-		CDC_ACM_COMM_INTERFACE,
-		CDC_ACM_DATA_INTERFACE,
-		CDC_ACM_COMM_EPIN,
-		CDC_ACM_DATA_EPIN,
-		CDC_ACM_DATA_EPOUT,
-		APP_USBD_CDC_COMM_PROTOCOL_NONE
-);
-*/
-
-
-/* 
-static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst, app_usbd_cdc_acm_user_event_t event) {
-	switch (event) {
-	case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN: {
-//		nrf_gpio_pin_set(LED_PIN);
-		// Setup first transfer
-		char rx;
-		app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx, 1);
-		break;
-	}
-	case APP_USBD_CDC_ACM_USER_EVT_PORT_CLOSE:
-//		nrf_gpio_pin_clear(LED_PIN);
-		break;
-	case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
-		break;
-	case APP_USBD_CDC_ACM_USER_EVT_RX_DONE: {
-		ret_code_t ret;
-		char rx;
-
-		do {
-			ret = app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx, 1);
-		} while (ret == NRF_SUCCESS);
-		break;
-	}
-	default:
-		break;
-	}
-}*/
-
-/* 
-static void usbd_user_ev_handler(app_usbd_event_type_t event) {
-	switch (event) {
-	case APP_USBD_EVT_DRV_SUSPEND:
-		break;
-	case APP_USBD_EVT_DRV_RESUME:
-		break;
-	case APP_USBD_EVT_STARTED:
-		break;
-	case APP_USBD_EVT_STOPPED:
-		app_usbd_disable();
-		break;
-	case APP_USBD_EVT_POWER_DETECTED:
-		if (!nrf_drv_usbd_is_enabled()) {
-			app_usbd_enable();
-		}
-		break;
-	case APP_USBD_EVT_POWER_REMOVED:
-		app_usbd_stop();
-		break;
-	case APP_USBD_EVT_POWER_READY:
-		app_usbd_start();
-		break;
-	default:
-		break;
-	}
-}*/
-
 
 /**@brief Function for assert macro callback.
  *
@@ -343,10 +246,10 @@ static void conn_params_init(void) {
 static void on_adv_evt(ble_adv_evt_t ble_adv_evt) {
 	switch (ble_adv_evt) {
 	case BLE_ADV_EVT_FAST:
-//		bsp_indication_set(BSP_INDICATE_ADVERTISING);
+		// bsp_indication_set(BSP_INDICATE_ADVERTISING);
 		break;
 	case BLE_ADV_EVT_IDLE:
-//		sleep_mode_enter();
+        // sleep_mode_enter();
 		start_advertising();
 		break;
 	default:
@@ -446,7 +349,7 @@ void gatt_init(void) {
 	APP_ERROR_CHECK(err_code);
 }
 
-void uart_event_handle(app_uart_evt_t * p_event) {
+/* void uart_event_handle(app_uart_evt_t * p_event) {
 	switch (p_event->evt_type) {
 	case APP_UART_DATA_READY: {
 //		uint8_t byte;
@@ -477,7 +380,7 @@ static void uart_init(void) {
 			APP_IRQ_PRIORITY_LOW,
 			err_code);
 	APP_ERROR_CHECK(err_code);
-}
+} */
 
 static void advertising_init(void) {
 	uint32_t err_code;
@@ -503,7 +406,7 @@ static void advertising_init(void) {
 	ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
 }
 
-static void set_enabled(bool en) {
+/* static void set_enabled(bool en) {
 	m_is_enabled = en;
 
 	if (m_is_enabled) {
@@ -523,7 +426,7 @@ static void uart_send_buffer(unsigned char *data, unsigned int len) {
 	for (int i = 0;i < len;i++) {
 		app_uart_put(data[i]);
 	}
-}
+} */
 
 void rfhelp_send_data_crc(uint8_t *data, unsigned int len) {
 	uint8_t buffer[len + 2];
@@ -576,9 +479,9 @@ static void process_packet_vesc(unsigned char *data, unsigned int len) {
 	} else if (data[0] == COMM_EXT_NRF_ESB_SEND_DATA) {
 		rfhelp_send_data_crc(data + 1, len - 1);
 	} else if (data[0] == COMM_EXT_NRF_SET_ENABLED) {
-		set_enabled(data[1]);
+		uart_set_enabled(data[1]);
 	} else {
-		if (m_is_enabled) {
+		if (uart_is_enabled) {
 			packet_send_packet(data, len, PACKET_BLE);
 		}
 	}
@@ -598,26 +501,6 @@ void ble_printf(const char* format, ...) {
 		packet_send_packet((unsigned char*)print_buffer, (len < 254) ? len + 1 : 255, PACKET_BLE);
 	}
 }
-
-/* 
-void cdc_printf(const char* format, ...) {
-#ifdef NRF52840_XXAA
-	va_list arg;
-	va_start (arg, format);
-	int len;
-	static char print_buffer[255];
-
-	len = vsnprintf(print_buffer, sizeof(print_buffer), format, arg);
-	va_end (arg);
-
-	if(len > 0) {
-		app_usbd_cdc_acm_write(&m_app_cdc_acm, print_buffer,
-				len < sizeof(print_buffer) ? len : sizeof(print_buffer));
-	}
-#else
-	(void)format;
-#endif
-}*/
 
 static void esb_timeslot_data_handler(void *p_data, uint16_t length) {
 	if (m_other_comm_disable_time == 0) {
@@ -651,22 +534,7 @@ static void nrf_timer_handler(void *p_context) {
 		packet_send_packet(buffer, 1, PACKET_VESC);
 		CRITICAL_REGION_EXIT();
 	}
-
-	// cdc_printf("Test\r\n");
 }
-
-/* void usb_init(){
-
-    static const app_usbd_config_t usbd_config = {
-			.ev_state_proc = usbd_user_ev_handler
-	};
-
-	app_usbd_serial_num_generate();
-	app_usbd_init(&usbd_config);
-	app_usbd_class_inst_t const * class_cdc_acm = app_usbd_cdc_acm_class_inst_get(&m_app_cdc_acm);
-	app_usbd_class_append(class_cdc_acm);
-
-}*/
 
 void receiver_init(){
 
@@ -682,7 +550,9 @@ int main(void) {
     receiver_init();
 	usb_init();
 
+    // Init uart communication with VESC
 	uart_init();
+
 	app_timer_init();
 	nrf_pwr_mgmt_init();
 	ble_stack_init();
@@ -692,21 +562,22 @@ int main(void) {
 	advertising_init();
 	conn_params_init();
 
-	(void)set_enabled;
+	(void)uart_set_enabled;
 
+    // Init packet structures for handling packages between VESC, nRF52 and BLE app
 	packet_init(uart_send_buffer, process_packet_vesc, PACKET_VESC);
 	packet_init(ble_send_buffer, process_packet_ble, PACKET_BLE);
 
-	app_timer_create(&m_packet_timer, APP_TIMER_MODE_REPEATED, packet_timer_handler);
-	app_timer_start(m_packet_timer, APP_TIMER_TICKS(1), NULL);
-
+    // Init repeating timer for handling packages
+	app_timer_create(&m_packet_timer, APP_TIMER_MODE_REPEATED, packet_timer_handler);   // Init m_packet_timer
+	app_timer_start(m_packet_timer, APP_TIMER_TICKS(1), NULL);                          // Configure m_packet_timer to be called each 1 millisecond
+    
 	app_timer_create(&m_nrf_timer, APP_TIMER_MODE_REPEATED, nrf_timer_handler);
 	app_timer_start(m_nrf_timer, APP_TIMER_TICKS(1000), NULL);
 
 	esb_timeslot_init(esb_timeslot_data_handler);
 	esb_timeslot_sd_start();
 
-	// app_usbd_power_events_enable();
 
 	start_advertising();
 
@@ -714,7 +585,7 @@ int main(void) {
 
 		// while (app_usbd_event_queue_process()){}
 
-		if (m_uart_error) {
+		/* if (m_uart_error) {
 			app_uart_close();
 			uart_init();
 			packet_reset(PACKET_VESC);
@@ -724,7 +595,9 @@ int main(void) {
 		uint8_t byte;
 		while (app_uart_get(&byte) == NRF_SUCCESS) {
 			packet_process_byte(byte, PACKET_VESC);
-		}
+		} */ 
+
+        uart_handle();
 
 		sd_app_evt_wait();
 	}

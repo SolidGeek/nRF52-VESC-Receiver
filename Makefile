@@ -90,7 +90,8 @@ SRC_FILES += \
   src/buffer.c \
   src/crc.c \
   src/packet.c \
-  src/nrf_usb.c \
+  src/usb.c \
+  src/uart.c \
   src/esb_timeslot.c \
   sdk_mod/nrf_esb.c \
   main.c \

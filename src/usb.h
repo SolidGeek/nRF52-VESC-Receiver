@@ -1,5 +1,5 @@
-#ifndef NRF_USB_
-#define NRF_USB_
+#ifndef FIREFLY_USB_
+#define FIREFLY_USB_
 
 #include <stdint.h>
 #include <string.h>
@@ -18,16 +18,10 @@
 #include "nrf_dfu_trigger_usb.h"
 #include "app_timer.h"
 
-
 void usb_init( void );
 
 void usb_dfu_init( void );
 
 void usb_printf(const char* format, ...);
 
-
-
-
-
-
-#endif
+#endif // FIREFLY_USB_

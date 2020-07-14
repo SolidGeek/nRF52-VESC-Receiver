@@ -1,4 +1,4 @@
-#include "nrf_usb.h"
+#include "usb.h"
 
 // As DFU Trigger uses interface 0, CDC must use 1 and 2
 #define CDC_ACM_COMM_INTERFACE  1
