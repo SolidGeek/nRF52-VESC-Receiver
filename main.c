@@ -82,9 +82,6 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-
-
-
 #define LED_PIN							NRF_GPIO_PIN_MAP(1,10)
 
 // Private variables
@@ -103,20 +100,7 @@ static ble_uuid_t m_adv_uuids[]          =                                      
 		{BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
 };
 
-/* static volatile bool	m_is_enabled = true;
-static volatile bool	m_uart_error = false; */
 static volatile int		m_other_comm_disable_time = 0;
-
-/* app_uart_comm_params_t m_uart_comm_params =
-{
-		.rx_pin_no    = UART_RX,
-		.tx_pin_no    = UART_TX,
-		.rts_pin_no   = 0,
-		.cts_pin_no   = 0,
-		.flow_control = APP_UART_FLOW_CONTROL_DISABLED,
-		.use_parity   = false,
-		.baud_rate    = NRF_UART_BAUDRATE_115200
-}; */
 
 // Functions
 void ble_printf(const char* format, ...);
@@ -349,39 +333,6 @@ void gatt_init(void) {
 	APP_ERROR_CHECK(err_code);
 }
 
-/* void uart_event_handle(app_uart_evt_t * p_event) {
-	switch (p_event->evt_type) {
-	case APP_UART_DATA_READY: {
-//		uint8_t byte;
-//		while (app_uart_get(&byte) == NRF_SUCCESS) {
-//			packet_process_byte(byte, PACKET_VESC);
-//		}
-	} break;
-
-	case APP_UART_COMMUNICATION_ERROR:
-//		m_uart_error = true;
-		break;
-
-	case APP_UART_FIFO_ERROR:
-//		m_uart_error = true;
-		break;
-
-	default:
-		break;
-	}
-}
-
-static void uart_init(void) {
-	uint32_t err_code;
-	APP_UART_FIFO_INIT(&m_uart_comm_params,
-			UART_RX_BUF_SIZE,
-			UART_TX_BUF_SIZE,
-			uart_event_handle,
-			APP_IRQ_PRIORITY_LOW,
-			err_code);
-	APP_ERROR_CHECK(err_code);
-} */
-
 static void advertising_init(void) {
 	uint32_t err_code;
 	ble_advertising_init_t init;
@@ -405,28 +356,6 @@ static void advertising_init(void) {
 
 	ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
 }
-
-/* static void set_enabled(bool en) {
-	m_is_enabled = en;
-
-	if (m_is_enabled) {
-		app_uart_close();
-		m_uart_comm_params.tx_pin_no = UART_TX;
-		uart_init();
-		nrf_gpio_cfg_default(UART_TX_DISABLED);
-	} else {
-		app_uart_close();
-		m_uart_comm_params.tx_pin_no = UART_TX_DISABLED;
-		uart_init();
-		nrf_gpio_cfg_default(UART_TX);
-	}
-}
-
-static void uart_send_buffer(unsigned char *data, unsigned int len) {
-	for (int i = 0;i < len;i++) {
-		app_uart_put(data[i]);
-	}
-} */
 
 void rfhelp_send_data_crc(uint8_t *data, unsigned int len) {
 	uint8_t buffer[len + 2];
@@ -537,21 +466,23 @@ static void nrf_timer_handler(void *p_context) {
 }
 
 void receiver_init(){
-
+    // Configure output LED
     nrf_gpio_cfg_output(LED_PIN);
 
+    // Init nRF52 master clock
+	nrf_drv_clock_init();
+
+    // Init USB for DFU update
+    usb_init();
+
+    // Init uart port for VESC communication
+	uart_init();
 }
 
 int main(void) {
-	
 
-	nrf_drv_clock_init();
-
+    // Init nRF52 receiver functions
     receiver_init();
-	usb_init();
-
-    // Init uart communication with VESC
-	uart_init();
 
 	app_timer_init();
 	nrf_pwr_mgmt_init();
@@ -561,8 +492,6 @@ int main(void) {
 	services_init();
 	advertising_init();
 	conn_params_init();
-
-	(void)uart_set_enabled;
 
     // Init packet structures for handling packages between VESC, nRF52 and BLE app
 	packet_init(uart_send_buffer, process_packet_vesc, PACKET_VESC);
@@ -582,21 +511,7 @@ int main(void) {
 	start_advertising();
 
 	for (;;) {
-
-		// while (app_usbd_event_queue_process()){}
-
-		/* if (m_uart_error) {
-			app_uart_close();
-			uart_init();
-			packet_reset(PACKET_VESC);
-			m_uart_error = false;
-		}
-
-		uint8_t byte;
-		while (app_uart_get(&byte) == NRF_SUCCESS) {
-			packet_process_byte(byte, PACKET_VESC);
-		} */ 
-
+        
         uart_handle();
 
 		sd_app_evt_wait();
