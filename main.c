@@ -105,6 +105,9 @@ static volatile int		m_other_comm_disable_time = 0;
 // Functions
 void ble_printf(const char* format, ...);
 
+
+
+
 /**@brief Function for assert macro callback.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -116,9 +119,11 @@ void ble_printf(const char* format, ...);
  * @param[in] line_num    Line number of the failing ASSERT call.
  * @param[in] p_file_name File name of the failing ASSERT call.
  */
+
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
 	app_error_handler(DEAD_BEEF, line_num, p_file_name);
+    NVIC_SystemReset();
 }
 
 static void gap_params_init(void)
@@ -403,16 +408,40 @@ static void process_packet_ble(unsigned char *data, unsigned int len) {
 }
 
 static void process_packet_vesc(unsigned char *data, unsigned int len) {
-	if (data[0] == COMM_EXT_NRF_ESB_SET_CH_ADDR) {
+
+    COMM_PACKET_ID packet_id;
+
+    packet_id = data[0];
+
+	if (packet_id == COMM_EXT_NRF_ESB_SET_CH_ADDR) {
+        // Packet contains a new address for the ESB stack
 		esb_timeslot_set_ch_addr(data[1], data[2], data[3], data[4]);
-	} else if (data[0] == COMM_EXT_NRF_ESB_SEND_DATA) {
+
+	} else if (packet_id == COMM_EXT_NRF_ESB_SEND_DATA) {
+        // Packet received from VESC should be sent to remote. Remove the COMM_ command, and send the rest. 
 		rfhelp_send_data_crc(data + 1, len - 1);
-	} else if (data[0] == COMM_EXT_NRF_SET_ENABLED) {
+
+	} else if (packet_id == COMM_EXT_NRF_SET_ENABLED){
+        // Packet should enable/disable the UART port
 		uart_set_enabled(data[1]);
-	} else {
+    }else {
+        // Any packet coming from the VESC that isnt any of the above.
 		if (uart_is_enabled) {
+            
 			packet_send_packet(data, len, PACKET_BLE);
 		}
+        // Test Print data coming from VESC (if COMM_GET_VALUES has been sent, fx. from VESC App)
+        if (packet_id == COMM_GET_VALUES ){
+            
+            // Remote COMM_ID from data
+            data++;
+
+            // Starting at byte 26 to read voltage
+            // https://github.com/vedderb/bldc/blob/e896ae84f72b3e4b30c2cc7c4217a4dbc2cb1ebb/commands.c#L282
+            int32_t ind = 26; 
+            float voltage = buffer_get_float16(data++, 10, &ind);
+            usb_printf("Voltage: %f \n\r", voltage);
+        }
 	}
 }
 
@@ -457,6 +486,7 @@ static void nrf_timer_handler(void *p_context) {
 	(void)p_context;
 
 	if (m_other_comm_disable_time == 0) {
+        // Send package to VESC to tell that a nRF module is connected, telling the VESC how to reply to commands
 		uint8_t buffer[1];
 		buffer[0] = COMM_EXT_NRF_PRESENT;
 		CRITICAL_REGION_ENTER();
@@ -501,8 +531,8 @@ int main(void) {
 	app_timer_create(&m_packet_timer, APP_TIMER_MODE_REPEATED, packet_timer_handler);   // Init m_packet_timer
 	app_timer_start(m_packet_timer, APP_TIMER_TICKS(1), NULL);                          // Configure m_packet_timer to be called each 1 millisecond
     
-	app_timer_create(&m_nrf_timer, APP_TIMER_MODE_REPEATED, nrf_timer_handler);
-	app_timer_start(m_nrf_timer, APP_TIMER_TICKS(1000), NULL);
+	app_timer_create(&m_nrf_timer, APP_TIMER_MODE_REPEATED, nrf_timer_handler);         // Init m_nrf_timer
+	app_timer_start(m_nrf_timer, APP_TIMER_TICKS(1000), NULL);                          // Configure m_nrf_timer to  be called every 1 second.
 
 	esb_timeslot_init(esb_timeslot_data_handler);
 	esb_timeslot_sd_start();
