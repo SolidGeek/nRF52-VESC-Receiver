@@ -4,16 +4,52 @@
 #define CDC_ACM_COMM_INTERFACE  1
 #define CDC_ACM_DATA_INTERFACE  2
 
+#define CDC_ACM_COMM_EPIN       NRF_DRV_USBD_EPIN2
+#define CDC_ACM_DATA_EPIN       NRF_DRV_USBD_EPIN1
+#define CDC_ACM_DATA_EPOUT      NRF_DRV_USBD_EPOUT1
+
+// Predefinition
+static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst, app_usbd_cdc_acm_user_event_t event);
+
 // Define instance "m_app_cdc_acm" for USB communication
 APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
-                            NULL,
-                            CDC_ACM_COMM_INTERFACE, 
-                            CDC_ACM_DATA_INTERFACE,
-                            NRF_DRV_USBD_EPIN2, // CDC_ACM_COMM_EPIN
-                            NRF_DRV_USBD_EPIN1, // CDC_ACM_DATA_EPIN
-                            NRF_DRV_USBD_EPOUT1, //CDC_ACM_DATA_EPOUT
-                            APP_USBD_CDC_COMM_PROTOCOL_AT_V250);
+    cdc_acm_user_ev_handler,
+    CDC_ACM_COMM_INTERFACE,
+    CDC_ACM_DATA_INTERFACE,
+    CDC_ACM_COMM_EPIN,
+    CDC_ACM_DATA_EPIN,
+    CDC_ACM_DATA_EPOUT,
+    APP_USBD_CDC_COMM_PROTOCOL_NONE
+);
 
+// Handles events coming over USB (could be done using interrupts, however this can ruin the timing)
+static void cdc_acm_user_ev_handler(app_usbd_class_inst_t const * p_inst, app_usbd_cdc_acm_user_event_t event) {
+	switch (event) {
+	case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN: {
+        // nrf_gpio_pin_set(LED_PIN);
+		// Setup first transfer
+		char rx;
+		app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx, 1);
+		break;
+	}
+	case APP_USBD_CDC_ACM_USER_EVT_PORT_CLOSE:
+        // nrf_gpio_pin_clear(LED_PIN);
+		break;
+	case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
+		break;
+	case APP_USBD_CDC_ACM_USER_EVT_RX_DONE: {
+		ret_code_t ret;
+		char rx;
+
+		do {
+			ret = app_usbd_cdc_acm_read(&m_app_cdc_acm, &rx, 1);
+		} while (ret == NRF_SUCCESS);
+		break;
+	}
+	default:
+		break;
+	}
+}
 
 static void usbd_user_ev_handler(app_usbd_event_type_t event) {
 	switch (event) {
@@ -55,6 +91,7 @@ void usb_printf(const char* format, ...) {
 
 	if(len > 0) {
 		app_usbd_cdc_acm_write(&m_app_cdc_acm, print_buffer, len < sizeof(print_buffer) ? len : sizeof(print_buffer));
+        nrf_delay_ms(1);
 	}
 
 }

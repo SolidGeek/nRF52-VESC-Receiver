@@ -6071,6 +6071,14 @@
 #define NRF_DFU_TRIGGER_USB_INTERFACE_NUM 0
 #endif
 
+
+// <o> APP_USBD_NRF_DFU_TRIGGER_METHOD - The method used to trigger the bootloader.  <0-1>
+// <0=> 0 (Enter bootloader on reset. Uses a gpio-pin to reset)
+// <1=> 1 (Enter bootloader by checking GPREGRET on startup)
+#ifndef APP_USBD_NRF_DFU_TRIGGER_METHOD
+#define APP_USBD_NRF_DFU_TRIGGER_METHOD 1
+#endif
+
 // </h>
 
 
@@ -6300,7 +6308,7 @@
 // <i> Selected Product ID
 
 #ifndef APP_USBD_PID
-#define APP_USBD_PID 0xC00A
+#define APP_USBD_PID 0xC00A // DFU Trigger and USB UART (COMPORT)
 #endif
 
 // <o> APP_USBD_DEVICE_VER_MAJOR - Device version, major part.  <0-99> 
@@ -6359,7 +6367,7 @@
 // <i> Functions that modify USBD state are functions for sleep, wakeup, start, stop, enable, and disable.
 //==========================================================
 #ifndef APP_USBD_CONFIG_EVENT_QUEUE_ENABLE
-#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 0 // 0 = makes the USB event handling interrupt driven
+#define APP_USBD_CONFIG_EVENT_QUEUE_ENABLE 1 // 0 = makes the USB event handling interrupt driven
 #endif
 // <o> APP_USBD_CONFIG_EVENT_QUEUE_SIZE - The size of the event queue.  <16-64> 
 
@@ -6452,7 +6460,7 @@
 // <i> Setting string to NULL disables that string.
 // <i> The order of manufacturer names must be the same like in @ref APP_USBD_STRINGS_LANGIDS.
 #ifndef APP_USBD_STRINGS_MANUFACTURER
-#define APP_USBD_STRINGS_MANUFACTURER APP_USBD_STRING_DESC("Nordic Semiconductor")
+#define APP_USBD_STRINGS_MANUFACTURER APP_USBD_STRING_DESC("Firefly")
 #endif
 
 // </e>

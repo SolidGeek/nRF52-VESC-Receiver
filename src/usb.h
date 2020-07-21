@@ -11,6 +11,7 @@
 #include "nrf.h"
 #include "boards.h"
 #include "nrf_drv_clock.h"
+#include "nrf_delay.h"
 
 // Include USB library
 #include "app_usbd_cdc_acm.h"

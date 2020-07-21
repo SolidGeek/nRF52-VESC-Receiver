@@ -86,7 +86,6 @@ SRC_FILES += \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_twi.c \
   $(SDK_ROOT)/components/ble/nrf_ble_qwr/nrf_ble_qwr.c \
   $(SDK_ROOT)/components/libraries/usbd/class/nrf_dfu_trigger/app_usbd_nrf_dfu_trigger.c \
-  $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_trigger_usb.c \
   src/buffer.c \
   src/crc.c \
   src/packet.c \
@@ -94,6 +93,7 @@ SRC_FILES += \
   src/uart.c \
   src/esb_timeslot.c \
   sdk_mod/nrf_esb.c \
+  sdk_mod/nrf_dfu_trigger_usb.c \
   main.c \
   
 

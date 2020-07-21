@@ -37,9 +37,6 @@
 
 #include "app_util_platform.h"
 #include "nrf_pwr_mgmt.h"
-#include "nrf_delay.h"
-
-
 
 #include "app_usbd_core.h"
 #include "app_usbd.h"
@@ -425,6 +422,9 @@ static void process_packet_vesc(unsigned char *data, unsigned int len) {
         // Packet should enable/disable the UART port
 		uart_set_enabled(data[1]);
     }else {
+
+        usb_printf("VESC packet ID: %d \n\r", packet_id);
+
         // Any packet coming from the VESC that isnt any of the above.
 		if (uart_is_enabled) {
             
@@ -542,6 +542,9 @@ int main(void) {
 
 	for (;;) {
         
+        // Process USB events (could be done using interrupts, however this can ruin the timing)
+        while (app_usbd_event_queue_process()){}
+
         uart_handle();
 
 		sd_app_evt_wait();
